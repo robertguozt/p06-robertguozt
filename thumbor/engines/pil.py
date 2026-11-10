@@ -424,6 +424,22 @@ class Engine(BaseEngine):
                     self.image = self.image.convert(mode)
 
             if (
+                ext == ".gif"
+                and self.image.mode == "P"
+                and "transparency" not in self.image.info
+                and self.image.palette is not None
+                and self.image.palette.mode == "RGBA"
+            ):
+                # quantize() keeps the palette alpha but not the index that
+                # GIF needs, so restore it from the first fully transparent
+                # palette entry.
+                palette = self.image.getpalette("RGBA")
+                for index in range(len(palette) // 4):
+                    if palette[index * 4 + 3] == 0:
+                        self.image.info["transparency"] = index
+                        break
+
+            if (
                 ext in [".png", ".gif", ".heic", ".heif"]
                 and self.image.mode == "CMYK"
             ):
